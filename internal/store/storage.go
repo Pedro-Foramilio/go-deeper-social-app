@@ -18,6 +18,7 @@ type Storage struct {
 		Delete(context.Context, int64) error
 	}
 	Users interface {
+		GetByID(context.Context, int64) (*User, error)
 		Create(context.Context, *User) error
 	}
 	Comments interface {
