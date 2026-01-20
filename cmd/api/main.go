@@ -27,6 +27,7 @@ func main() {
 	cfg := config{
 		addr: env.GetString("ADDR", ":8081"),
 		db:   dbConfig,
+		env:  env.GetString("ENV", "local"),
 	}
 
 	db, err := db.New(
