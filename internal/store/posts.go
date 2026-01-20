@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/lib/pq"
 )
@@ -25,6 +26,9 @@ type PostStore struct {
 }
 
 func (s *PostStore) Create(ctx context.Context, post *Post) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	query := `
 		INSERT INTO posts (content, title, user_id, tags)
 		VALUES ($1, $2, $3, $4)
@@ -52,6 +56,9 @@ func (s *PostStore) Create(ctx context.Context, post *Post) error {
 }
 
 func (s *PostStore) GetByID(ctx context.Context, idStr int64) (*Post, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	query := `
 		SELECT id, content, title, user_id, tags, created_at, updated_at, version
 		FROM posts
@@ -86,6 +93,9 @@ func (s *PostStore) GetByID(ctx context.Context, idStr int64) (*Post, error) {
 }
 
 func (s *PostStore) Delete(ctx context.Context, id int64) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	query := `
 		DELETE FROM posts
 		WHERE id = $1
@@ -108,6 +118,10 @@ func (s *PostStore) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *PostStore) Update(ctx context.Context, post *Post) error {
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	query := `
 		UPDATE posts
 		SET title = $1, content = $2, tags = $3, updated_at = NOW(), version = version + 1
