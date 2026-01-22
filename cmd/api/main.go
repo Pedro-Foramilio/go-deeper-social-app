@@ -7,6 +7,7 @@ import (
 	"github.com/Pedro-Foramilio/social/internal/env"
 	"github.com/Pedro-Foramilio/social/internal/store"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -30,6 +31,9 @@ func main() {
 		env:  env.GetString("ENV", "local"),
 	}
 
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
 	db, err := db.New(
 		dbConfig.addr,
 		dbConfig.maxOpenConns,
@@ -38,18 +42,19 @@ func main() {
 	)
 
 	if err != nil {
-		log.Panicf("Error connecting to the database: %v\n", err)
+		logger.Panicf("Error connecting to the database: %v\n", err)
 	}
 	defer db.Close()
-	log.Println("Connected to the database successfully")
+	logger.Info("Connected to the database successfully")
 
 	store := store.NewStorage(db)
 
 	app := &application{
 		config: cfg,
 		store:  store,
+		logger: logger,
 	}
 
 	mux := app.mount()
-	log.Fatal(app.run(mux))
+	logger.Fatal(app.run(mux))
 }
