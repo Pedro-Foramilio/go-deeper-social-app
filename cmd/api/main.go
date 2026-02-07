@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/Pedro-Foramilio/social/internal/db"
 	"github.com/Pedro-Foramilio/social/internal/env"
@@ -29,6 +30,9 @@ func main() {
 		addr: env.GetString("ADDR", ":8081"),
 		db:   dbConfig,
 		env:  env.GetString("ENV", "local"),
+		mail: mailConfig{
+			exp: 5 * time.Minute,
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()

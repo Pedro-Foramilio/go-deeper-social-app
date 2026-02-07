@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
-	ErrNotFound     = errors.New("record not found")
-	ErrAlredyExists = errors.New("resource already exists")
+	ErrNotFound          = errors.New("record not found")
+	ErrAlredyExists      = errors.New("resource already exists")
+	ErrDuplicateEmail    = errors.New("email already exists")
+	ErrDuplicateUsername = errors.New("username already exists")
 )
 
 type Storage struct {
@@ -21,7 +24,8 @@ type Storage struct {
 	}
 	Users interface {
 		GetByID(context.Context, int64) (*User, error)
-		Create(context.Context, *User) error
+		Create(context.Context, *sql.Tx, *User) error
+		CreateAndInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error
@@ -41,4 +45,21 @@ func NewStorage(db *sql.DB) Storage {
 		Comments:  &CommentStore{db: db},
 		Followers: &FollowerStore{db: db},
 	}
+}
+
+func withTx(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
