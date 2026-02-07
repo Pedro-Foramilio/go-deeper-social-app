@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Pedro-Foramilio/social/internal/mailer"
 	"github.com/Pedro-Foramilio/social/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -16,13 +17,15 @@ type application struct {
 	config config
 	store  store.Storage
 	logger *zap.SugaredLogger
+	mailer mailer.Client
 }
 
 type config struct {
-	addr string
-	db   dbConfig
-	env  string
-	mail mailConfig
+	addr        string
+	db          dbConfig
+	env         string
+	mail        mailConfig
+	frontendURL string
 }
 
 type dbConfig struct {
@@ -33,7 +36,14 @@ type dbConfig struct {
 }
 
 type mailConfig struct {
-	exp time.Duration
+	apikey    string
+	fromEmail string
+	exp       time.Duration
+	mailTrap  MailTrap
+}
+
+type MailTrap struct {
+	apikey string
 }
 
 func (app *application) mount() http.Handler {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/Pedro-Foramilio/social/internal/db"
 	"github.com/Pedro-Foramilio/social/internal/env"
+	"github.com/Pedro-Foramilio/social/internal/mailer"
 	"github.com/Pedro-Foramilio/social/internal/store"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -31,8 +32,14 @@ func main() {
 		db:   dbConfig,
 		env:  env.GetString("ENV", "local"),
 		mail: mailConfig{
-			exp: 5 * time.Minute,
+			exp:       5 * time.Minute,
+			apikey:    env.GetString("API_KEY", ""),
+			fromEmail: env.GetString("FROM_EMAIL", "socialnetwork.com"),
+			mailTrap: MailTrap{
+				apikey: env.GetString("API_KEY_MAILTRAP", ""),
+			},
 		},
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -53,10 +60,18 @@ func main() {
 
 	store := store.NewStorage(db)
 
+	// mailer := mailer.NewSendGrid(
+	// 	cfg.mail.apikey,
+	// 	cfg.mail.fromEmail,
+	// )
+
+	mailer, err := mailer.NewMailTrapClient(cfg.mail.mailTrap.apikey, cfg.mail.fromEmail)
+
 	app := &application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 
 	mux := app.mount()
