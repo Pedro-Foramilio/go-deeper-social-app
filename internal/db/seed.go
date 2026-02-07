@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -128,7 +129,7 @@ var (
 	}
 )
 
-func Seed(store store.Storage) {
+func Seed(store store.Storage, db *sql.DB) {
 
 	n_users, n_posts, n_comments := 100, 250, 500
 	s_users, s_posts, s_comments := 100, 250, 500
@@ -136,12 +137,14 @@ func Seed(store store.Storage) {
 	ctx := context.Background()
 
 	users := generateUsers(n_users)
+	tx, _ := db.BeginTx(ctx, nil)
 	for _, user := range users {
-		if err := store.Users.Create(ctx, user); err != nil {
+		if err := store.Users.Create(ctx, tx, user); err != nil {
 			fmt.Printf("failed to create user %s: %v\n", user.Username, err)
 			s_users--
 		}
 	}
+	tx.Commit()
 
 	posts := generatePosts(n_posts, users)
 
@@ -172,7 +175,6 @@ func generateUsers(num int) []*store.User {
 		users[i] = &store.User{
 			Username: usernames[i%len(usernames)] + fmt.Sprintf("%d", i),
 			Email:    usernames[i%len(usernames)] + fmt.Sprintf("%d", i) + "@example.com",
-			Password: passwords[i%len(passwords)] + fmt.Sprintf("-%d", i),
 		}
 	}
 	return users
