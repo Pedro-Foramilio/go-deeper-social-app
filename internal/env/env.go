@@ -27,3 +27,17 @@ func GetInt(key string, defaultValue int) int {
 	}
 	return intVal
 }
+
+func GetBool(key string, defaultValue bool) bool {
+
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
+	}
+
+	boolVal, err := strconv.ParseBool(val)
+	if err != nil {
+		return defaultValue
+	}
+	return boolVal
+}
