@@ -117,3 +117,23 @@
 - Database: PostgreSQL (configured via `DB_ADDR`), connection pooling settings available in env vars.
 - Mailer: Mailtrap is used by default in the code; SendGrid support is present but commented out in `main.go`.
 - JWT: configured with `JWT_SECRET`, issuer and expiry in `main.go`.
+
+**Cache / Redis**
+- Optional Redis-based cache is supported and controlled by environment variables in `main.go`:
+	- `REDIS_ENABLED` (bool) — enable/disable cache
+	- `REDIS_ADDR` — Redis address (default: `localhost:6379`)
+	- `REDIS_PASSWORD` — Redis password
+	- `REDIS_DB` — Redis database number
+- Wiring: when enabled, the app initializes a Redis client (`cache.NewRedisClient`) and constructs a cache storage (`cache.NewRedisStorage`) which is injected into the application (`app.cacheStorage`).
+- Implementation: cache code lives under `internal/store/cache`.
+	- `Storage` exposes a `Users` store with `Get(ctx, id) (*store.User, error)` and `Set(ctx, *store.User) error`.
+	- `UserStore` uses `redis.Client` and stores JSON-encoded `store.User` values under keys of the form `user-%v` with a TTL of 1 minute (uses `SETEX`).
+- Usage: the `getUser` helper in `cmd/api/middleware.go` is cache-aware:
+	- If `REDIS_ENABLED` is false the app directly fetches users from the database (`store.Users.GetByID`).
+	- If enabled, it first attempts `cacheStorage.Users.Get(ctx, userID)`.
+	- On cache miss or error it fetches the user from the DB and then calls `cacheStorage.Users.Set(ctx, user)` to populate the cache.
+	- Cache hits and cache-set events are logged (`cache hit for user`, `cache set for user`).
+- Behavior notes:
+	- The cache is used only for reading user records by ID in the token authentication flow (`AuthTokenMiddleware` -> `getUser`).
+	- Cache entries have a short TTL (1 minute), so data may be briefly stale; there is no explicit invalidation logic in the middleware shown.
+	- Errors while setting or reading the cache fall back to DB reads and are logged but do not block authentication.
