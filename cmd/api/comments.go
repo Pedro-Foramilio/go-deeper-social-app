@@ -24,10 +24,11 @@ func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	user := getUserFromContext(r)
 	comment := &store.Comment{
 		PostID:  payload.PostID,
 		Content: payload.Content,
-		UserID:  102, //TODO: change after auth
+		UserID:  user.ID,
 	}
 
 	if err := app.store.Comments.Create(r.Context(), comment); err != nil {
