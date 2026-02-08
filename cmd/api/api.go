@@ -92,6 +92,7 @@ func (app *application) mount() http.Handler {
 		})
 
 		r.Route("/comments", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware)
 			r.Post("/", app.createCommentHandler)
 		})
 
