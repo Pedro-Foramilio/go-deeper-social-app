@@ -61,6 +61,7 @@ func main() {
 				iss:    "socialnetwork",
 			},
 		},
+		redisCfg: redisCfg,
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
