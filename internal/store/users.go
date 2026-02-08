@@ -254,3 +254,7 @@ func (s *UsersStore) delete(ctx context.Context, tx *sql.Tx, id int64) error {
 	_, err := tx.ExecContext(ctx, query, id)
 	return err
 }
+
+func (p *password) Compare(text string) error {
+	return bcrypt.CompareHashAndPassword(p.hash, []byte(text))
+}
