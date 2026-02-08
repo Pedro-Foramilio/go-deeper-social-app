@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Pedro-Foramilio/social/internal/auth"
 	"github.com/Pedro-Foramilio/social/internal/mailer"
 	"github.com/Pedro-Foramilio/social/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -14,10 +15,11 @@ import (
 const version = "0.0.1"
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type config struct {
@@ -31,6 +33,13 @@ type config struct {
 
 type authConfig struct {
 	basic basicConfig
+	token tokenConfig
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 
 type basicConfig struct {
@@ -68,6 +77,8 @@ func (app *application) mount() http.Handler {
 		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 
 		r.Route("/posts", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware)
+
 			r.Post("/", app.createPostHandler)
 
 			r.Route("/{postID}", func(r chi.Router) {
@@ -91,6 +102,7 @@ func (app *application) mount() http.Handler {
 			})
 
 			r.Route("/{userID}", func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
 				r.Use(app.userContextMiddleware)
 
 				r.Get("/", app.getUserHandler)
@@ -100,6 +112,7 @@ func (app *application) mount() http.Handler {
 			})
 
 			r.Group(func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 
@@ -107,6 +120,7 @@ func (app *application) mount() http.Handler {
 
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.registerUserHandler)
+			r.Post("/token", app.createTokenHandler)
 		})
 
 	})

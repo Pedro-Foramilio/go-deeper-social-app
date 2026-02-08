@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Pedro-Foramilio/social/internal/auth"
 	"github.com/Pedro-Foramilio/social/internal/db"
 	"github.com/Pedro-Foramilio/social/internal/env"
 	"github.com/Pedro-Foramilio/social/internal/mailer"
@@ -45,6 +46,11 @@ func main() {
 				user: env.GetString("BASIC_AUTH_USER", ""),
 				pass: env.GetString("BASIC_AUTH_PASS", ""),
 			},
+			token: tokenConfig{
+				secret: env.GetString("JWT_SECRET", ""),
+				exp:    time.Hour * 24 * 3,
+				iss:    "socialnetwork",
+			},
 		},
 	}
 
@@ -73,11 +79,14 @@ func main() {
 
 	mailer, err := mailer.NewMailTrapClient(cfg.mail.mailTrap.apikey, cfg.mail.fromEmail)
 
+	jwtAuth := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.iss, cfg.auth.token.iss)
+
 	app := &application{
-		config: cfg,
-		store:  store,
-		logger: logger,
-		mailer: mailer,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        mailer,
+		authenticator: jwtAuth,
 	}
 
 	mux := app.mount()

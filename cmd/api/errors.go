@@ -40,3 +40,10 @@ func (app *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r 
 
 	writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 }
+
+func (app *application) unauthorizedErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+
+	app.logger.Warnw("unauthorized error", "method", r.Method, "path", r.URL.Path, "error", err)
+
+	writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+}
