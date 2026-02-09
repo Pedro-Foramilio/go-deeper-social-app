@@ -8,6 +8,7 @@ import (
 	"github.com/Pedro-Foramilio/social/internal/db"
 	"github.com/Pedro-Foramilio/social/internal/env"
 	"github.com/Pedro-Foramilio/social/internal/mailer"
+	ratelimiter "github.com/Pedro-Foramilio/social/internal/rateLimiter"
 	"github.com/Pedro-Foramilio/social/internal/store"
 	"github.com/Pedro-Foramilio/social/internal/store/cache"
 	"github.com/go-redis/redis/v8"
@@ -62,6 +63,11 @@ func main() {
 			},
 		},
 		redisCfg: redisCfg,
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATE_LIMITER_REQUESTS_COUNT", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -103,6 +109,8 @@ func main() {
 
 	jwtAuth := auth.NewJWTAuthenticator(cfg.auth.token.secret, cfg.auth.token.iss, cfg.auth.token.iss)
 
+	rateLimiter := ratelimiter.NewFixedWindowRateLimiter(cfg.rateLimiter.RequestsPerTimeFrame, cfg.rateLimiter.TimeFrame)
+
 	app := &application{
 		config:        cfg,
 		store:         store,
@@ -110,6 +118,7 @@ func main() {
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuth,
+		rateLimiter:   rateLimiter,
 	}
 
 	mux := app.mount()
